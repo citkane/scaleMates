@@ -1,0 +1,21 @@
+{
+  "name": "scalemates",
+  "version": "0.0.0",
+  "description": "Scraper for scalemates.com",
+  "main": "index.mjs",
+  "scripts": {
+    "scrape": "node ./src/index.mjs"
+  },
+  "author": "Michael Jonker",
+  "license": "MIT",
+  "engines" : { 
+    "node" : "^19"
+  },
+  "dependencies": {
+    "fs-extra": "^11.1.0",
+    "puppeteer": "^19.4.1"
+  },
+  "devDependencies": {
+    "prettier": "2.8.1"
+  }
+}
