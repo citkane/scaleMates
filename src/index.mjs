@@ -1,9 +1,16 @@
 import puppeteer from "puppeteer";
+import fs from "fs-extra";
 import { PageBuilder } from "./PageBuilder.mjs";
-import { PageScraper } from "./PageScraper.mjs";
+import { PageScraper, saleUrlBuilder } from "./PageScraper.mjs";
 
 const queryRate = 100;
-const country = "CA";
+
+let options = fs.readJsonSync("./defaultOptions.json");
+const userOptions = fs.existsSync("./customOptions.json")
+  ? fs.readJsonSync("./customOptions.json")
+  : null;
+if (userOptions) options = { ...options, ...userOptions };
+const { country, scale, decades, groups } = options;
 
 (async () => {
   const browser = await puppeteer.launch();
@@ -14,8 +21,14 @@ const country = "CA";
 
   const countryMateLinks = await pageScraper.getCountryMateLinks(country);
 
+  console.log(
+    `Found [${countryMateLinks.length}] mates in ${country}. \nNow checking how many have items for sale or swap...`
+  );
+
+  const saleUrlQuery = saleUrlBuilder(scale, decades, groups);
+
   for (const i in countryMateLinks) {
-    const link = countryMateLinks[i];
+    const link = `${countryMateLinks[i]}&${saleUrlQuery}`;
     await sleep();
     const userDetail = await pageScraper.getUserSaleDetails(link);
     if (!userDetail) continue;
@@ -25,8 +38,12 @@ const country = "CA";
       await pageBuilder.addListItem(name, url, saleCount);
       pageBuilder.savePage(country);
     }
-    console.log(`${Number(i) + 1} of ${countryMateLinks.length}`);
+    console.log(`Scraping mate ${Number(i) + 1} of ${countryMateLinks.length}`);
   }
+  console.log(
+    `\nDONE!`,
+    `\n\nOpen ./build/${country}.html locally in your browser.`
+  );
 })();
 
 export const sleep = async (delay = queryRate) =>
