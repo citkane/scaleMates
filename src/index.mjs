@@ -11,6 +11,7 @@ const userOptions = fs.existsSync("./customOptions.json")
   : null;
 if (userOptions) options = { ...options, ...userOptions };
 const { country, scale, decades, groups } = options;
+const saleUrlQuery = saleUrlBuilder(scale, decades, groups);
 
 (async () => {
   const browser = await puppeteer.launch();
@@ -24,8 +25,6 @@ const { country, scale, decades, groups } = options;
   console.log(
     `Found [${countryMateLinks.length}] mates in ${country}. \nNow checking how many have items for sale or swap...`
   );
-
-  const saleUrlQuery = saleUrlBuilder(scale, decades, groups);
 
   for (const i in countryMateLinks) {
     const link = `${countryMateLinks[i]}&${saleUrlQuery}`;

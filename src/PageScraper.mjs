@@ -110,13 +110,13 @@ export const saleUrlBuilder = (scale, decades, groups) => {
     })
     .join("&");
 
-  console.log(`\n\n${"-".repeat(60)}`);
+  console.log(`\n${"=".repeat(100)}`);
   console.log(
     `Looking for ${groups} kits in scale 1:${scale} released in the ${
       decades.length > 1 ? "decades" : "decades"
     } ${decades.join()}`
   );
-  console.log("-".repeat(60), "\n\n");
+  console.log("=".repeat(100), "\n\n");
 
   return Object.values(queries).join("&");
 };

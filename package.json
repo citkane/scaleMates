@@ -8,14 +8,14 @@
   },
   "author": "Michael Jonker",
   "license": "MIT",
-  "engines" : { 
-    "node" : "^19"
+  "engines": {
+    "node": "^19"
   },
   "dependencies": {
     "fs-extra": "^11.1.0",
     "puppeteer": "^19.4.1"
   },
   "devDependencies": {
-    "prettier": "2.8.1"
+    "prettier": "^2.8.1"
   }
 }
