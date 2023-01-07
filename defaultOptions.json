@@ -1,6 +1,10 @@
 {
     "country": "GB",
-    "scale": "1:72",
+    "scale": ["1:72", "1:48"],
     "decades":["2000", "2010", "2020"],
-    "groups": "Aircraft"
+    "groups": ["Aircraft", "Vehicles", "Guns"],
+    "credentials": {
+        "email": "",
+        "password": ""
+    }
 }

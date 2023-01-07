@@ -1,4 +1,3 @@
-import { Page } from "puppeteer";
 import path from "path";
 import { sleep } from "./index.mjs";
 const baseUrl = "https://www.scalemates.com";
@@ -11,16 +10,38 @@ export class PageScraper {
   constructor(page) {
     this.page = page;
   }
-  getCountryMateLinks = async (country) => {
-    const url = matePage(country);
-    console.log(`Loading "${country}" mates: ${decodeURIComponent(url)}`);
-    await this.page.goto(url);
+  login = async (email, password) => {
+    await this.page.goto(path.join(baseUrl, "login.php"));
+    await this.page.evaluate(
+      (email, password) => {
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("pass");
+        const submitButton = document.querySelector('input[name="submit"]');
 
+        emailInput.value = email;
+        passwordInput.value = password;
+        submitButton.click();
+      },
+      email,
+      password
+    );
+    return await this.page.waitForSelector("#psc").then(() => {
+      console.log("Logged In");
+    });
+  };
+  getCountryMateLinks = async (url) => {
+    await this.page.setViewport({
+      width: 1200,
+      height: 900,
+    });
+
+    await this.page.goto(url);
+    //await autoScroll(this.page, "fgdTOWN");
     let matesAndTowns = await this.page.evaluate(() => {
       const totalMates = [
         ...document.querySelectorAll("label.cfkTOWN > em.cntfkTOWN"),
       ].reduce(
-        (a, em) => a + parseFloat(em.textContent.replace(/[\(,\)]/g, "")),
+        (a, em) => a + parseFloat(em.textContent.replace(/[(,)]/g, "")),
         0
       );
       const towns = [...document.querySelectorAll("label.cfkTOWN > input")].map(
@@ -38,16 +59,24 @@ export class PageScraper {
 
     const mateLinks = [];
     for (const i in towns) {
+      //if (i > 0) return;
       const townUrl = `${url}&fkTOWN[]="${towns[i]}"`;
+      const mateLinkSelector = ".tsr > a";
+
       await this.page.goto(townUrl);
-      await autoScroll(this.page);
-      const townMateLinks = await this.page.evaluate(() => {
-        const mateLinkSelector = ".tsr > a";
+      const count = await this.page.evaluate(
+        (mateLinkSelector) =>
+          document.querySelectorAll(mateLinkSelector).length,
+        mateLinkSelector
+      );
+      if (!count) continue;
+      if (count > 10) await autoScroll(this.page);
+      const townMateLinks = await this.page.evaluate((mateLinkSelector) => {
         const aHTMLElements = document.querySelectorAll(mateLinkSelector);
         return [...aHTMLElements].map((element) =>
           element.getAttribute("href")
         );
-      });
+      }, mateLinkSelector);
       console.log(
         `..........${towns[i] || "Unknown Town"} [${townMateLinks.length}]`
       );
@@ -55,48 +84,55 @@ export class PageScraper {
       mateLinks.push(townMateLinks);
       sleep();
     }
+
     return mateLinks.flat();
   };
 
   getUserSaleDetails = async (userLink) => {
     const saleUrl = path.join(baseUrl, userLink);
 
-    try {
-      await this.page.goto(saleUrl);
-      await autoScroll(this.page);
+    await this.page.goto(saleUrl);
 
-      const userDetails = await this.page.evaluate(() => {
-        const userNameHTMLElement = document.querySelector("#mh .mhtn");
-        const userName = userNameHTMLElement
-          ? userNameHTMLElement.textContent
-          : undefined;
+    const resultsSelector = "#results .ac.dg.bgl.cc.pr.mt4 > a.al";
+    const count = await this.page.evaluate((resultsSelector) => {
+      return document.querySelectorAll(resultsSelector).length;
+    }, resultsSelector);
 
-        const results = document.querySelector("#results");
-        const saleCount = results
-          ? [...results.querySelectorAll(".ac.dg.bgl.cc.pr.mt4 > a.al")].length
-          : 0;
+    if (!count) return null;
 
-        return {
-          name: userName,
-          saleCount,
-        };
-      });
-      userDetails.url = saleUrl;
-      return userDetails;
-    } catch (err) {
-      console.log(err);
-      return null;
-    }
+    await autoScroll(this.page);
+
+    const userDetails = await this.page.evaluate((resultsSelector) => {
+      const userNameHTMLElement = document.querySelector("#mh .mhtn");
+      const userName = userNameHTMLElement
+        ? userNameHTMLElement.textContent
+        : undefined;
+
+      const saleCount = document.querySelectorAll(resultsSelector).length;
+
+      return {
+        name: userName,
+        saleCount,
+      };
+    }, resultsSelector);
+    userDetails.url = saleUrl;
+    return userDetails;
   };
 }
 
-export const saleUrlBuilder = (scale, decades, groups) => {
-  groups = initCaps(groups);
-  scale = normaliseScale(scale);
+export const matesPage = (country) =>
+  path.join(
+    baseUrl,
+    `search.php?fkSECTION[]=Members&ssearch=&fkCOUNTRY[]="${country}"&of=alpha`
+  );
+
+export const saleUrlBuilder = (scales, decades, groups) => {
+  scales = scales.map((scale) => normaliseScale(scale));
+  groups = groups.map((group) => initCaps(group));
   const queries = {
     forSale: "p=forsale",
-    groups: `fkGROUPS[]="${groups}"`,
-    scale: `fkSCALENORMALISED[]="1:${scale}"`,
+    groups: groups.map((group) => `fkGROUPS[]="${group}"`).join("&"),
+    scale: scales.map((scale) => `fkSCALENORMALISED[]="1:${scale}"`).join("&"),
     section: "fkSECTION[]=Kits",
     type: 'fkTYPENAME[]="Full kits"',
   };
@@ -110,47 +146,61 @@ export const saleUrlBuilder = (scale, decades, groups) => {
     })
     .join("&");
 
-  console.log(`\n\n${"-".repeat(60)}`);
-  console.log(
-    `Looking for ${groups} kits in scale 1:${scale} released in the ${
-      decades.length > 1 ? "decades" : "decades"
-    } ${decades.join()}`
-  );
-  console.log("-".repeat(60), "\n\n");
+  const query = Object.values(queries).join("&");
 
-  return Object.values(queries).join("&");
+  let text = `Looking for ${joinGroups(groups)} kits ${joinScales(
+    scales
+  )}`.replace(/\s\s+/g, " ");
+  if (decades.length)
+    text = `${text} released in the ${
+      decades.length > 1 ? "decades" : "decades"
+    } ${decades.join(", ")}`;
+
+  return {
+    query,
+    text,
+  };
+};
+const joinScales = (scales) => {
+  if (!scales.length) return "";
+  scales = scales.map((scale) => `1:${scale.replace(/0/g, "")}`);
+  if (scales.length === 1) return `in scale ${scales[0]}`;
+  return `in scales [${scales.join(", ")}]`;
+};
+const joinGroups = (groups) => {
+  if (!groups.length) return "";
+  if (groups.length === 1) return groups[0];
+  return `[${groups.join(", ")}]`;
 };
 const normaliseScale = (scale) => {
-  scale = scale.split(/[:|\/|\\]/).pop();
+  scale = scale.split(/[:|/|\\]/).pop();
   return `${"0".repeat(5 - scale.length)}${scale}`;
 };
 const initCaps = (string) =>
   `${string[0].toUpperCase()}${string.toLowerCase().substring(1)}`;
-const matePage = (country) =>
-  path.join(
-    baseUrl,
-    `search.php?fkSECTION[]=Members&q=*&ssearch=&fkCOUNTRY[]=%22${country}%22`
-  );
 
-const autoScroll = async (page) => {
-  await page.setViewport({
-    width: 1200,
-    height: 3000,
-  });
-  await sleep(100);
-  return page.evaluate(async () => {
+const autoScroll = async (page, idSelector) => {
+  return page.evaluate(async (idSelector) => {
     await new Promise((resolve) => {
-      var totalHeight = 0;
-      var distance = 100;
-      var timer = setInterval(() => {
-        var scrollHeight = document.body.scrollHeight;
-        window.scrollBy(0, distance);
+      let totalHeight = 0;
+      if (idSelector) idSelector = document.getElementById(idSelector);
+      let scrollHeight;
+
+      const elementHeight = idSelector
+        ? idSelector.clientHeight
+        : window.innerHeight;
+      const distance = elementHeight / 2;
+
+      const timer = setInterval(() => {
+        scrollHeight = (idSelector ? idSelector : document.body).scrollHeight;
+        (idSelector ? idSelector : window).scrollBy(0, distance);
         totalHeight += distance;
-        if (totalHeight >= scrollHeight - window.innerHeight) {
+
+        if (totalHeight >= scrollHeight - elementHeight) {
           clearInterval(timer);
           resolve();
         }
-      }, 100);
+      }, 300);
     });
-  });
+  }, idSelector);
 };

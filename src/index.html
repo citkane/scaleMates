@@ -7,7 +7,86 @@
     <title>HTML 5 Boilerplate</title>
     <link rel="stylesheet" href="./style.css">
   </head>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body, html {
+      font-family: "sans-serif"
+    }
+    body {
+      margin: 0;
+      width:100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #content, #footer {
+      padding: 1rem;
+    }
+    #content {
+      flex-grow: 1;
+      overflow:scroll;
+      width: 100%;
+    }
+    #footer {
+      width: 100%;
+      padding:1rem;
+    }
+    h1 {
+      font-size: 1.3rem;
+      color:cadetblue;
+      width:600px;
+    }
+    a {
+      color:midnightblue;
+      text-decoration-color: olive;
+    }
+    ul {
+      padding:0;
+      margin: 0;
+      margin-top:1rem;
+      width:600px;
+    }
+    li {
+      display: flex;
+      align-items: center;
+      padding: 0 0.25rem;
+      border: 1px dotted black;
+      border-bottom: none;
+    }
+    li:last-child {
+      border-bottom:1px dotted black;
+    }
+    li:hover {
+      background-color:aliceblue;
+    }
+    li a {
+      padding: 0.25rem 0;
+      flex-grow: 1;
+      text-decoration: none;
+      color: midnightblue;
+    }
+    li a:visited {
+      color: olive;
+    }
+    </style>
   <body>
-
+    <div id="content"></div>
+    <div id="footer">
+      <a href = "https://scalemates.com" target="_blank">Scalemates</a>
+      <a href="https://github.com/citkane/scaleMates" target="_blank"> scraper</a>
+      <span>built with &#128151 by </span>
+      <a href="https://openpoint.ie" target="_blank">OPENPOINT</a>
+      <span>.</span>
+    </div>
   </body>
+ 
+  <template id="matesLink">
+    <div class="matesLink">
+      <span>From all </span>
+      <a target="_blank"></a>
+      <span>...</span>
+    </div>
+  </template>
 </html>

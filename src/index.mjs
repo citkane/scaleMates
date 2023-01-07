@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer";
 import fs from "fs-extra";
 import { PageBuilder } from "./PageBuilder.mjs";
-import { PageScraper, saleUrlBuilder } from "./PageScraper.mjs";
+import { PageScraper, saleUrlBuilder, matesPage } from "./PageScraper.mjs";
 
 const queryRate = 100;
 
@@ -10,26 +10,45 @@ const userOptions = fs.existsSync("./customOptions.json")
   ? fs.readJsonSync("./customOptions.json")
   : null;
 if (userOptions) options = { ...options, ...userOptions };
-const { country, scale, decades, groups } = options;
+const { country, scale, decades, groups, credentials } = options;
+const { email, password } = credentials;
 
 (async () => {
-  const browser = await puppeteer.launch();
-  const sourcePage = await browser.newPage();
+  const browser = await puppeteer.launch({ headless: true });
   const targetPage = await browser.newPage();
-  const pageBuilder = await new PageBuilder(targetPage).init(country);
+  const sourcePage = await browser.newPage();
+
+  const matesPageUrl = matesPage(country);
+  const saleUrlQuery = saleUrlBuilder(scale, decades, groups);
+
+  const pageBuilder = await new PageBuilder(targetPage).init(
+    country,
+    saleUrlQuery.text,
+    matesPageUrl
+  );
+
   const pageScraper = new PageScraper(sourcePage);
 
-  const countryMateLinks = await pageScraper.getCountryMateLinks(country);
+  if (email && password) await pageScraper.login(email, password);
+
+  console.log(`Loading "${country}" mates: ${matesPageUrl}`);
+  console.log(`\n\n${"-".repeat(100)}`);
+  console.log(saleUrlQuery.text);
+  console.log("-".repeat(100), "\n\n");
+
+  const countryMateLinks = await pageScraper.getCountryMateLinks(matesPageUrl);
+
+  //return;
 
   console.log(
     `Found [${countryMateLinks.length}] mates in ${country}. \nNow checking how many have items for sale or swap...`
   );
 
-  const saleUrlQuery = saleUrlBuilder(scale, decades, groups);
-
   for (const i in countryMateLinks) {
-    const link = `${countryMateLinks[i]}&${saleUrlQuery}`;
+    const link = `${countryMateLinks[i]}&${saleUrlQuery.query}`;
     await sleep();
+    console.log(`Scraping mate ${Number(i) + 1} of ${countryMateLinks.length}`);
+
     const userDetail = await pageScraper.getUserSaleDetails(link);
     if (!userDetail) continue;
 
@@ -37,9 +56,10 @@ const { country, scale, decades, groups } = options;
     if (saleCount) {
       await pageBuilder.addListItem(name, url, saleCount);
       pageBuilder.savePage(country);
+      console.log(`${name} has [${saleCount}] items for sale.`);
     }
-    console.log(`Scraping mate ${Number(i) + 1} of ${countryMateLinks.length}`);
   }
+
   console.log(
     `\nDONE!`,
     `\n\nOpen ./build/${country}.html locally in your browser.`
