@@ -10,8 +10,13 @@ const userOptions = fs.existsSync("./customOptions.json")
   ? fs.readJsonSync("./customOptions.json")
   : null;
 if (userOptions) options = { ...options, ...userOptions };
+<<<<<<< HEAD
 const { country, scale, decades, groups, credentials } = options;
 const { email, password } = credentials;
+=======
+const { country, scale, decades, groups } = options;
+const saleUrlQuery = saleUrlBuilder(scale, decades, groups);
+>>>>>>> eecbc8226db3f4fcfa8810692fdc109f6d5df205
 
 (async () => {
   const browser = await puppeteer.launch({ headless: true });
