@@ -1,4 +1,3 @@
-import path from "path";
 import { sleep } from "./index.mjs";
 const baseUrl = "https://www.scalemates.com";
 
@@ -11,7 +10,7 @@ export class PageScraper {
     this.page = page;
   }
   login = async (email, password) => {
-    await this.page.goto(path.join(baseUrl, "login.php"));
+    await this.page.goto(`${baseUrl}/login.php`);
     await this.page.evaluate(
       (email, password) => {
         const emailInput = document.getElementById("email");
@@ -36,7 +35,6 @@ export class PageScraper {
     });
 
     await this.page.goto(url);
-    //await autoScroll(this.page, "fgdTOWN");
     let matesAndTowns = await this.page.evaluate(() => {
       const totalMates = [
         ...document.querySelectorAll("label.cfkTOWN > em.cntfkTOWN"),
@@ -59,7 +57,6 @@ export class PageScraper {
 
     const mateLinks = [];
     for (const i in towns) {
-      //if (i > 0) return;
       const townUrl = `${url}&fkTOWN[]="${towns[i]}"`;
       const mateLinkSelector = ".tsr > a";
 
@@ -89,7 +86,7 @@ export class PageScraper {
   };
 
   getUserSaleDetails = async (userLink) => {
-    const saleUrl = path.join(baseUrl, userLink);
+    const saleUrl = `${baseUrl}${userLink}`;
 
     await this.page.goto(saleUrl);
 
@@ -121,10 +118,7 @@ export class PageScraper {
 }
 
 export const matesPage = (country) =>
-  path.join(
-    baseUrl,
-    `search.php?fkSECTION[]=Members&ssearch=&fkCOUNTRY[]="${country}"&of=alpha`
-  );
+  `${baseUrl}/search.php?fkSECTION[]=Members&ssearch=&fkCOUNTRY[]="${country}"&of=alpha`;
 
 export const saleUrlBuilder = (scales, decades, groups) => {
   scales = scales.map((scale) => normaliseScale(scale));
@@ -146,7 +140,6 @@ export const saleUrlBuilder = (scales, decades, groups) => {
     })
     .join("&");
 
-<<<<<<< HEAD
   const query = Object.values(queries).join("&");
 
   let text = `Looking for ${joinGroups(groups)} kits ${joinScales(
@@ -156,15 +149,6 @@ export const saleUrlBuilder = (scales, decades, groups) => {
     text = `${text} released in the ${
       decades.length > 1 ? "decades" : "decades"
     } ${decades.join(", ")}`;
-=======
-  console.log(`\n${"=".repeat(100)}`);
-  console.log(
-    `Looking for ${groups} kits in scale 1:${scale} released in the ${
-      decades.length > 1 ? "decades" : "decades"
-    } ${decades.join()}`
-  );
-  console.log("=".repeat(100), "\n\n");
->>>>>>> eecbc8226db3f4fcfa8810692fdc109f6d5df205
 
   return {
     query,

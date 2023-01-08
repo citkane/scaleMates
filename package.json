@@ -17,11 +17,7 @@
     "puppeteer": "^19.4.1"
   },
   "devDependencies": {
-<<<<<<< HEAD
     "eslint": "^8.31.0",
     "prettier": "2.8.1"
-=======
-    "prettier": "^2.8.1"
->>>>>>> eecbc8226db3f4fcfa8810692fdc109f6d5df205
   }
 }
