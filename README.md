@@ -21,8 +21,8 @@ npm i
 npm run scrape
 ```
 
-Running the script will output `.html` files in the `build` directory.
+Running the script will output an `.html` file corresponding to the given country option into the `build` directory.
 
 ## Example
 
-Open `example.html` in the `build` folder for an example output.
+Open [`example.html`](https://citkane.github.io/scaleMates/build/example.html). There is a copy of this in the `build` folder of this repository.
